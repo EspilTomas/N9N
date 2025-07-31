@@ -18,6 +18,7 @@ import { initializeEmailJS } from "@/services/email-service"
 import { DatabaseTest } from "@/components/database-test"
 
 export default function Home() {
+  const [isClient, setIsClient] = useState(false)
   const [activeSection, setActiveSection] = useState("chatbot")
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [user, setUser] = useState<{ name: string; role: string } | null>(null)
@@ -28,6 +29,11 @@ export default function Home() {
 
   // Hook para sincronización entre pestañas
   useCrossTabSync()
+
+  // Ensure client-side rendering
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
 
   // Inicializar EmailJS al cargar la aplicación
   useEffect(() => {
@@ -200,7 +206,7 @@ export default function Home() {
       </div>
 
       {/* Notificaciones de sincronización */}
-      <SyncNotifications />
+      {isClient && <SyncNotifications />}
     </div>
   )
 }
