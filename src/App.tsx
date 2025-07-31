@@ -1,7 +1,3 @@
-"use client"
-
-export const dynamic = 'force-dynamic'
-
 import { useState, useEffect } from "react"
 import { LoginForm } from "@/components/login-form"
 import { Sidebar } from "@/components/sidebar"
@@ -11,6 +7,7 @@ import { DriversSection } from "@/components/drivers-section"
 import { TrucksSection } from "@/components/trucks-section"
 import { TrailersSection } from "@/components/trailers-section"
 import { TripsSection } from "@/components/trips-section"
+import { AdminDashboard } from "@/components/admin-dashboard"
 import { SyncNotifications } from "@/components/sync-notifications"
 import { useDriverStore } from "@/store/driver-store"
 import { useTripStore } from "@/store/trip-store"
@@ -19,8 +16,7 @@ import { useCrossTabSync } from "@/hooks/use-cross-tab-sync"
 import { initializeEmailJS } from "@/services/email-service"
 import { DatabaseTest } from "@/components/database-test"
 
-export default function Home() {
-  const [isClient, setIsClient] = useState(false)
+function App() {
   const [activeSection, setActiveSection] = useState("chatbot")
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [user, setUser] = useState<{ name: string; role: string } | null>(null)
@@ -32,11 +28,6 @@ export default function Home() {
   // Hook para sincronización entre pestañas
   useCrossTabSync()
 
-  // Ensure client-side rendering
-  useEffect(() => {
-    setIsClient(true)
-  }, [])
-
   // Inicializar EmailJS al cargar la aplicación
   useEffect(() => {
     initializeEmailJS()
@@ -47,25 +38,25 @@ export default function Home() {
     const checkReassignments = () => {
       trips.forEach((trip) => {
         if (trip.estado === "agendado" || trip.estado === "en-curso") {
-          const conductor = drivers.find((d) => d.id === trip.conductorId)
+          const conductor = drivers.find((d) => d.id === trip.conductor_id)
           if (conductor && conductor.estado !== "disponible") {
             // Buscar conductor disponible para reasignar
             const conductorDisponible = drivers.find(
-              (d) => d.estado === "disponible" && d.horasDisponibles > 0 && d.id !== conductor.id,
+              (d) => d.estado === "disponible" && d.horas_disponibles > 0 && d.id !== conductor.id,
             )
 
             if (conductorDisponible) {
-              reassignTrip(trip.idViaje, conductorDisponible.id, conductorDisponible.nombre)
+              reassignTrip(trip.id_viaje, conductorDisponible.id, conductorDisponible.nombre)
               addNotification({
                 id: Date.now().toString(),
-                message: `Viaje ${trip.idViaje} reasignado de ${conductor.nombre} a ${conductorDisponible.nombre} debido a cambio de estado`,
+                message: `Viaje ${trip.id_viaje} reasignado de ${conductor.nombre} a ${conductorDisponible.nombre} debido a cambio de estado`,
                 type: "warning",
                 timestamp: new Date(),
               })
             } else {
               addNotification({
                 id: Date.now().toString(),
-                message: `⚠️ Viaje ${trip.idViaje} requiere reasignación manual - No hay conductores disponibles`,
+                message: `⚠️ Viaje ${trip.id_viaje} requiere reasignación manual - No hay conductores disponibles`,
                 type: "error",
                 timestamp: new Date(),
               })
@@ -105,7 +96,7 @@ export default function Home() {
     if (!user) return null
 
     const permissions = {
-      admin: ["chatbot", "viajes", "conductores", "tractos", "ramplas"], // Admin ve todo
+      admin: ["admin-dashboard", "chatbot", "viajes", "conductores", "tractos", "ramplas", "database-test"], // Admin ve todo
       operador: ["chatbot", "viajes"],
       rrhh: ["conductores"],
       taller: ["tractos", "ramplas"],
@@ -120,7 +111,7 @@ export default function Home() {
       if (!user) return false
 
       const permissions = {
-        admin: ["chatbot", "viajes", "conductores", "tractos", "ramplas"], // Admin tiene acceso a todo
+        admin: ["admin-dashboard", "chatbot", "viajes", "conductores", "tractos", "ramplas", "database-test"], // Admin tiene acceso a todo
         operador: ["chatbot", "viajes"],
         rrhh: ["conductores"],
         taller: ["tractos", "ramplas"],
@@ -141,6 +132,8 @@ export default function Home() {
     }
 
     switch (activeSection) {
+      case "admin-dashboard":
+        return <AdminDashboard />
       case "chatbot":
         return <ChatbotSection />
       case "conductores":
@@ -191,7 +184,7 @@ export default function Home() {
     if (isLoggedIn) {
       loadInitialData()
     }
-  }, [isLoggedIn])
+  }, [isLoggedIn, drivers.length, trips.length, fetchDrivers, fetchTrips, fetchTrucks, fetchTrailers])
 
   if (!isLoggedIn) {
     return <LoginForm onLogin={handleLogin} />
@@ -208,7 +201,9 @@ export default function Home() {
       </div>
 
       {/* Notificaciones de sincronización */}
-      {isClient && <SyncNotifications />}
+      <SyncNotifications />
     </div>
   )
 }
+
+export default App
